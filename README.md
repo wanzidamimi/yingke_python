@@ -2,6 +2,8 @@
 
 > **项目状态：还在测试中，接口和采集行为可能随时调整。**
 
+![当前 Web 控制台界面](docs/images/web-ui.png)
+
 这是一个基于 FastAPI + Server-Sent Events 的映客弹幕实时采集与查看工程。  
 它尝试从映客的私有 TCP 链路中还原弹幕数据，并提供一个适合本地调试的 Web 控制台。
 
@@ -144,3 +146,4 @@ npx --yes --package @playwright/test playwright test tests/ui_smoke.spec.js --re
 - [ ] 优化断线重连与会话恢复
 - [ ] 增加更完整的自动化测试
 - [ ] 支持多房间并行采集
+
