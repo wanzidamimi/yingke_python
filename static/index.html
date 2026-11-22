@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>映客弹幕实时控制台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<style>
+  :root {
+    --ink: #f5f7fa;
+    --muted: #9aa5b5;
+    --line: rgba(255,255,255,.09);
+    --glass: rgba(15,21,32,.72);
+    --panel: rgba(17,24,37,.84);
+    --deep: #080d15;
+    --mint: #37f5c3;
+    --cyan: #31d7f5;
+    --coral: #ff7d95;
+    --amber: #ffb86b;
+    --shadow: 0 20px 60px rgba(0,0,0,.38);
+    --radius: 18px;
+    --font: "HarmonyOS Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; min-height: 100dvh; overflow: hidden; color: var(--ink); font-family: var(--font);
+    background:
+      radial-gradient(circle at 82% 4%, rgba(55,245,195,.13), transparent 28%),
+      radial-gradient(circle at 8% 18%, rgba(49,215,245,.12), transparent 32%),
+      radial-gradient(circle at 70% 100%, rgba(255,125,149,.10), transparent 32%),
+      linear-gradient(145deg, #060a11, #0b101a 48%, #080d15);
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .025;
+    background-image: repeating-linear-gradient(90deg, #fff 0 1px, transparent 1px 7px);
+  }
+  .shell {
+    position: relative; z-index: 1; height: 100dvh; display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 336px);
+    grid-template-rows: auto minmax(0, 1fr); gap: 14px; padding: 14px;
+  }
+  header {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(14,22,35,.9), rgba(12,17,27,.78));
+    border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 20px;
+    background: linear-gradient(135deg, rgba(55,245,195,.24), rgba(49,215,245,.18));
+    border: 1px solid rgba(55,245,195,.34); box-shadow: 0 0 22px rgba(55,245,195,.12);
+  }
+  .brand h1 { font-size: 17px; margin: 0; letter-spacing: .4px; }
+  .brand p { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+  .controls { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .field { position: relative; display: flex; align-items: center; }
+  input {
+    height: 38px; min-width: 300px; padding: 0 14px; border-radius: 11px; border: 1px solid rgba(255,255,255,.12);
+    background: rgba(8,13,21,.78); color: var(--ink); outline: none; transition: .2s;
+  }
+  input:focus { border-color: rgba(55,245,195,.62); box-shadow: 0 0 0 3px rgba(55,245,195,.1); }
+  button {
+    height: 38px; padding: 0 16px; border: 1px solid transparent; border-radius: 11px; cursor: pointer;
+    font-family: inherit; font-weight: 600; transition: transform .18s, box-shadow .18s, opacity .18s;
+  }
+  button.primary {
+    color: #05221a; background: linear-gradient(135deg, #37f5c3, #31d7f5);
+    box-shadow: 0 10px 28px rgba(55,245,195,.16);
+  }
+  button.ghost { color: var(--ink); background: rgba(255,255,255,.07); border-color: var(--line); }
+  button:hover:not(:disabled) { transform: translateY(-1px); }
+  button:disabled { opacity: .42; cursor: not-allowed; }
+  #status {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 12px;
+    border-radius: 999px; font-size: 12px; color: #b7c2d2; background: rgba(255,255,255,.06);
+    border: 1px solid var(--line); white-space: nowrap;
+  }
+  #status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #8090a4; box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+  #status[data-state="live"]::before { background: var(--mint); box-shadow: 0 0 0 3px rgba(55,245,195,.12); animation: pulse 1.8s infinite; }
+  #status[data-state="connecting"]::before { background: var(--amber); }
+  .workspace { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; min-width: 0; min-height: 0; }
+  .room-rail, .stream-panel, .side-panel {
+    border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    background: var(--panel); backdrop-filter: blur(18px); min-height: 0;
+  }
+  .room-rail { padding: 13px 16px; display: grid; gap: 10px; }
+  .section-title { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .section-title::before { content: ""; width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--mint), transparent); }
+  #roomGrid {
+    display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent;
+  }
+  .room-card {
+    flex: 0 0 210px; display: flex; gap: 10px; align-items: center; padding: 10px 12px;
+    border-radius: 13px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); cursor: pointer;
+    transition: .2s;
+  }
+  .room-card:hover { transform: translateY(-2px); border-color: rgba(55,245,195,.38); background: rgba(55,245,195,.07); }
+  .room-card img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,.1); }
+  .room-card .meta { min-width: 0; font-size: 12px; }
+  .room-card .meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .room-card .meta span { display: block; margin-top: 2px; color: #8492a5; font-size: 11px; }
+  .stream-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+  .stream-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px;
+    border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(55,245,195,.07), transparent 42%);
+  }
+  .stream-head h2 { font-size: 14px; margin: 0; }
+  .stream-head span { font-size: 11px; color: var(--muted); }
+  #list {
+    margin: 0; padding: 12px 16px 18px; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent;
+  }
+  .row {
+    display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; margin-bottom: 7px; line-height: 1.55;
+    border-radius: 12px; background: rgba(255,255,255,.032); border: 1px solid rgba(255,255,255,.042);
+    animation: rise .22s ease both;
+  }
+  .row:hover { background: rgba(255,255,255,.06); }
+  .row .tag {
+    flex: 0 0 auto; margin-top: 2px; padding: 3px 7px; border-radius: 999px; font-size: 10px; color: #061319;
+    background: var(--chip, #9aa3af);
+  }
+  .row .body { min-width: 0; font-size: 13px; }
+  .row .user { display: inline-block; margin-right: 7px; font-weight: 650; color: #8ddcf2; }
+  .row .time { display: block; margin-top: 2px; color: #6c7787; font-size: 11px; }
+  .row.system { background: rgba(49,215,245,.07); border-color: rgba(49,215,245,.14); color: #a9dcf0; }
+  .row.error { background: rgba(255,125,149,.08); border-color: rgba(255,125,149,.16); color: #ffb4c1; }
+  .empty-state { display: grid; place-items: center; min-height: 200px; color: #7d8899; font-size: 13px; }
+  .empty-state b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 6px; }
+  .side-panel { padding: 16px; display: grid; grid-template-rows: auto auto minmax(0,1fr); gap: 16px; overflow: hidden; }
+  .panel-block { min-height: 0; display: grid; gap: 10px; }
+  .filter-scroll { overflow-y: auto; padding-right: 5px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
+  #filters { display: flex; flex-direction: column; gap: 8px; }
+  #filters label {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 11px; cursor: pointer;
+    background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.05); font-size: 12px; transition: .18s;
+  }
+  #filters label:hover { background: rgba(255,255,255,.075); }
+  #filters input { width: 15px; min-width: 15px; height: 15px; accent-color: var(--mint); }
+  #filters .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--chip, #9aa3af); box-shadow: 0 0 12px color-mix(in srgb, var(--chip, #9aa3af) 55%, transparent); }
+  .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .mini-grid button { font-size: 12px; padding: 0 10px; }
+  .metric { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .metric div { padding: 10px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+  .metric b { display: block; font-size: 18px; }
+  .metric span { color: var(--muted); font-size: 11px; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 900px) {
+    body { overflow: auto; }
+    .shell { height: auto; grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    .workspace, .side-panel { min-height: auto; }
+    .stream-panel { min-height: 58vh; }
+    header { flex-wrap: wrap; }
+    .controls { margin-left: 0; width: 100%; }
+    input { min-width: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <div class="brand-mark">🎬</div>
+      <div>
+        <h1>映客弹幕实时控制台</h1>
+        <p>APP 逆向采集 · 实时流分析</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="field"><input id="room" placeholder="输入主播 UID / 直播间链接 / liveid"></div>
+      <button id="start" class="primary">连接采集</button>
+      <button id="stop" class="ghost" disabled>停止</button>
+      <button id="export" class="ghost">导出 CSV</button>
+      <button id="history" class="ghost">历史记录</button>
+      <span id="status" data-state="idle">idle · 0 条</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="room-rail">
+      <div class="section-title">热门直播间 · 点击卡片直接采集</div>
+      <div id="roomGrid"></div>
+    </section>
+
+    <section class="stream-panel" aria-label="实时弹幕流">
+      <div class="stream-head">
+        <h2>实时消息流</h2>
+        <span>自动滚动 · 上限 300 条 · 分类可独立开关</span>
+      </div>
+      <div id="list">
+        <div class="empty-state">
+          <div>
+            <b>等待采集连接</b>
+            选择热门房间，或输入直播间地址后点击「连接采集」。
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="side-panel" aria-label="会话控制">
+    <section class="panel-block">
+      <div class="section-title">会话状态</div>
+      <div class="metric">
+        <div><b id="metricCount">0</b><span>已记录</span></div>
+        <div><b id="metricRoom">—</b><span>当前房间</span></div>
+      </div>
+      <div class="mini-grid">
+        <button id="exportSide" class="ghost">导出 CSV</button>
+        <button id="historySide" class="ghost">历史记录</button>
+      </div>
+    </section>
+
+    <section class="panel-block">
+      <div class="section-title">消息分类</div>
+      <div class="filter-scroll">
+        <div id="filters"></div>
+      </div>
+    </section>
+
+    <section class="panel-block">
+      <div class="section-title">使用提示</div>
+      <p style="margin:0;color:#8b96a6;font-size:12px;line-height:1.7">
+        长时间采集时建议导出 CSV 后重启会话；分类开关只影响当前页面显示，不会中断后台录制。
+      </p>
+    </section>
+  </aside>
+</div>
+
+<script>
+const list = document.getElementById('list');
+const statusEl = document.getElementById('status');
+const startBtn = document.getElementById('start');
+const stopBtn = document.getElementById('stop');
+const roomInput = document.getElementById('room');
+let categories = {};
+let enabled = new Set();
+let knownCount = 0;
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function clearEmpty() { const empty = list.querySelector('.empty-state'); if (empty) empty.remove(); }
+function updateMetrics(recorded, room) {
+  knownCount = recorded ?? knownCount;
+  document.getElementById('metricCount').textContent = knownCount;
+  if (room !== undefined) document.getElementById('metricRoom').textContent = room || '—';
+}
+function setStatus(state, text) {
+  statusEl.dataset.state = state || 'idle';
+  statusEl.textContent = text;
+  document.body.dataset.state = state || 'idle';
+}
+
+async function loadCategories() {
+  const r = await fetch('/api/categories').then(x => x.json());
+  (r.categories || []).forEach(c => { categories[c.key] = c; enabled.add(c.key); });
+  document.getElementById('filters').innerHTML = (r.categories || []).map(c =>
+    `<label data-k="${esc(c.key)}"><input type="checkbox" data-k="${esc(c.key)}" checked><span class="dot" style="--chip:${esc(c.color)}"></span>${esc(c.label)}</label>`
+  ).join('');
+  document.querySelectorAll('#filters input').forEach(el => el.onchange = () => {
+    el.checked ? enabled.add(el.dataset.k) : enabled.delete(el.dataset.k);
+  });
+}
+
+function append(ev) {
+  if (ev.kind === 'danmu' || ev.kind === 'binary') {
+    if (!enabled.has(ev.category || 'other')) return;
+    const lab = categories[ev.category] || { label: ev.category || '其他', color: '#9aa3af' };
+    const div = document.createElement('div');
+    div.className = 'row';
+    div.style.setProperty('--chip', lab.color);
+    const time = ev.ts ? `<span class="time">${esc(ev.ts)}</span>` : '';
+    div.innerHTML = `<span class="tag">${esc(lab.label)}</span>` +
+      `<div class="body"><span class="user">${esc(ev.user || '')}</span>${esc(ev.text || ev.content || '')}${time}</div>`;
+    clearEmpty();
+    list.appendChild(div);
+    while (list.children.length > 300) list.removeChild(list.firstChild);
+    list.scrollTop = list.scrollHeight;
+  } else if (ev.kind === 'system' || ev.kind === 'error') {
+    const div = document.createElement('div');
+    div.className = 'row ' + ev.kind;
+    div.textContent = '[' + ev.kind + '] ' + (ev.text || '');
+    clearEmpty();
+    list.appendChild(div);
+    list.scrollTop = list.scrollHeight;
+  }
+}
+
+async function startSession(payload) {
+  const r = await fetch('/api/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}).then(x=>x.json());
+  if (!r.ok) { alert(r.error || '启动失败'); return; }
+  startBtn.disabled = true; stopBtn.disabled = false; list.innerHTML = '';
+  setStatus('connecting', 'connecting · 启动中');
+}
+
+startBtn.onclick = async () => {
+  const room = roomInput.value.trim();
+  if (!room) return;
+  await startSession({room});
+};
+
+async function loadRooms() {
+  const r = await fetch('/api/rooms').then(x => x.json()).catch(() => ({rooms: []}));
+  const rooms = r.rooms || [];
+  document.getElementById('roomGrid').innerHTML = rooms.length ? rooms.map(x =>
+    `<div class="room-card" data-liveid="${esc(x.liveid)}" data-uid="${esc(x.uid)}">` +
+      `<img src="${esc(x.portrait || '')}" onerror="this.style.opacity=0">` +
+      `<div class="meta"><b>${esc(x.nick || '直播间')}</b><span>UID ${esc(x.uid)} · ${esc(x.liveid)}</span></div>` +
+    `</div>`
+  ).join('') : '<div style="color:#7d8899;font-size:12px">暂无热门房间数据，可在上方手动输入直播间。</div>';
+  document.querySelectorAll('.room-card').forEach(el => el.onclick = async () => {
+    const liveid = el.dataset.liveid;
+    const uid = el.dataset.uid;
+    roomInput.value = liveid;
+    document.getElementById('metricRoom').textContent = liveid;
+    await startSession({room: liveid, uid, liveid});
+  });
+}
+
+stopBtn.onclick = async () => {
+  await fetch('/api/stop', {method:'POST'});
+  startBtn.disabled = false; stopBtn.disabled = true;
+  setStatus('idle', 'idle · 会话已停止');
+};
+
+async function exportSession() {
+  const r = await fetch('/api/export', {method:'POST'}).then(x=>x.json());
+  alert(r.ok ? `已导出 ${r.name}（${r.count} 条）` : (r.error || '导出失败'));
+}
+async function showHistory() {
+  const r = await fetch('/api/history').then(x=>x.json());
+  const names = (r.files || []).map(f => `${f.name} (${f.rows} 行)`);
+  alert(names.length ? names.join('\n') : '暂无历史文件');
+}
+document.getElementById('export').onclick = exportSession;
+document.getElementById('exportSide').onclick = exportSession;
+document.getElementById('history').onclick = showHistory;
+document.getElementById('historySide').onclick = showHistory;
+
+const es = new EventSource('/api/events');
+es.onmessage = e => { try { append(JSON.parse(e.data)); } catch (_) {} };
+
+setInterval(async () => {
+  const s = await fetch('/api/status').then(x=>x.json()).catch(()=>null);
+  if (s) {
+    setStatus(s.status, `${s.status} · ${s.recorded} 条`);
+    updateMetrics(s.recorded, s.room);
+  }
+}, 2000);
+
+loadCategories();
+loadRooms();
+updateMetrics(0);
+</script>
+</body>
+</html>

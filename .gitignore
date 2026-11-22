@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# Runtime data
+exports/
+logs/
+*.log
+*.err
+
+# Reverse-engineering artifacts
+reverse/logs/
+reverse/unpacked/
+reverse/unpacked_dex.zip
+reverse/unpacked.apk
+reverse/smali_out/
+reverse/tools/
+reverse/*.png
+reverse/*.out
+reverse/**/*.png
+reverse/**/db_ingkee
+reverse/references/inke_runtime_config.json
+reverse/references/inke_runtime_no_passthrough.json
+yingke.apk
+
+# Browser/test artifacts
+.playwright-cli/
+test-results/
+screenshots/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Local secrets
+.env
+.env.*
+github_token.txt
+*.pem
+*.key

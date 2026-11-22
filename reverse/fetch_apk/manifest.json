@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "description": "APK 登记表：统一记录来源、版本、哈希与签名，供 REA 分析和版本对比使用",
+  "items": []
+}
