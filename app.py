@@ -15,8 +15,13 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from category import CATEGORIES
+from emulator_control import SHOT as EMULATOR_SHOT, wake_and_launch
+from http_login_web import complete_login, start_sms
 from inke_tcp_collector import InkeTcpCollector, fetch_hot_rooms, resolve_room
+from login_session import current_session, logout, mark_logged_in
+from login_state import check_environment, read_login_state, save_login_state
 from recorder import SessionRecorder
+from video_stream import is_allowed_stream_host, iter_upstream_stream, resolve_stream_addr
 
 STATIC = Path(__file__).parent / "static"
 STATIC.mkdir(exist_ok=True)
@@ -79,6 +84,121 @@ def index():
     return FileResponse(str(STATIC / "index.html"))
 
 
+@app.get("/api/session/current")
+async def session_current():
+    return current_session()
+
+
+@app.post("/api/session/logout")
+async def session_logout():
+    result = logout()
+    with _state["lock"]:
+        client = _state["client"]
+    if client:
+        try:
+            client.stop()
+        except Exception:
+            pass
+    return result
+
+
+@app.post("/api/emulator/wake")
+async def emulator_wake(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    pin = (data.get("pin") or "").strip() or None
+    try:
+        return wake_and_launch(pin=pin)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/emulator/screenshot")
+async def emulator_screenshot():
+    if not EMULATOR_SHOT.exists():
+        return {"ok": False, "error": "暂无截图"}
+    return FileResponse(str(EMULATOR_SHOT), media_type="image/png")
+
+
+@app.post("/api/login/http/sms")
+async def login_http_sms(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    return start_sms(
+        data.get("phone") or "",
+        area_code=data.get("area_code") or "86",
+        region=data.get("region") or "cn",
+    )
+
+
+@app.post("/api/login/http/verify")
+async def login_http_verify(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    result = complete_login(
+        data.get("token") or "",
+        data.get("phone") or "",
+        data.get("code") or "",
+    )
+    if result.get("ok"):
+        uid = (result.get("masked") or {}).get("uid")
+        masked_phone = (result.get("masked") or {}).get("phone_masked") or ""
+        if uid:
+            mark_logged_in("http_sms", uid, masked_phone=masked_phone)
+    return result
+
+
+@app.get("/api/login/status")
+async def login_status():
+    env = check_environment()
+    return {"ok": env["ok"], "environment": env}
+
+
+@app.post("/api/login/open")
+async def login_open(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    pin = (data.get("pin") or "").strip() or None
+    try:
+        return wake_and_launch(pin=pin)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/login/sync")
+async def login_sync(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    sid = (data.get("sid") or "").strip() or None
+    try:
+        result = read_login_state(preferred_sid=sid)
+        if not result.get("ok"):
+            return result
+        path = save_login_state(result)
+        uid = (result.get("masked") or {}).get("uid")
+        if uid:
+            mark_logged_in("adb_root", uid)
+        return {
+            "ok": True,
+            "message": "登录态已保存到本地配置",
+            "saved_to": path,
+            "masked": result.get("masked"),
+            "sid_candidate_count": result.get("sid_candidate_count", 0),
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.get("/api/rooms")
 async def rooms():
     return {"rooms": fetch_hot_rooms()}
@@ -94,6 +214,13 @@ async def resolve(request: Request):
 
 @app.post("/api/start")
 async def start(request: Request):
+    session = current_session()
+    if not session.get("logged_in"):
+        return {
+            "ok": False,
+            "reason": "not_logged_in",
+            "error": "请先登录映客账号",
+        }
     data = await request.json()
     room = (data.get("room") or "").strip()
     uid = str(data.get("uid") or "").strip()
@@ -119,6 +246,39 @@ async def stop():
         except Exception:
             pass
     return {"ok": True}
+
+
+@app.get("/api/video/check")
+async def video_check(liveid: str = "", refresh: int = 0):
+    liveid = str(liveid or "").strip()
+    if not liveid:
+        return {"ok": False, "error": "缺少 liveid"}
+    url = resolve_stream_addr(liveid, force=bool(refresh))
+    if not url:
+        return {"ok": False, "error": "该直播间暂无可播放画面"}
+    if not is_allowed_stream_host(url):
+        return {"ok": False, "reason": "disallowed_stream_host", "error": "流地址不在白名单内"}
+    return {"ok": True, "content_type": "video/x-flv"}
+
+
+@app.get("/api/video/stream")
+async def video_stream_proxy(liveid: str = "", refresh: int = 0):
+    liveid = str(liveid or "").strip()
+    if not liveid:
+        return {"ok": False, "error": "缺少 liveid"}
+    url = resolve_stream_addr(liveid, force=bool(refresh))
+    if not url:
+        return {"ok": False, "error": "该直播间暂无可播放画面"}
+    if not is_allowed_stream_host(url):
+        return {"ok": False, "reason": "disallowed_stream_host", "error": "流地址不在白名单内"}
+    return StreamingResponse(
+        iter_upstream_stream(url),
+        media_type="video/x-flv",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get("/api/events")

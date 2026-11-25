@@ -24,7 +24,13 @@ reverse/*.out
 reverse/**/*.png
 reverse/**/db_ingkee
 reverse/references/inke_runtime_config.json
+reverse/references/inke_runtime_config.local.json
+reverse/references/login_session.json
 reverse/references/inke_runtime_no_passthrough.json
+reverse/references/inke_runtime_fake_login.json
+reverse/references/inke_runtime_random_uid.json
+reverse/references/inke_runtime_ablate.json
+
 yingke.apk
 
 # Browser/test artifacts

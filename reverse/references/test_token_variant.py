@@ -9,7 +9,7 @@ from app_tcp_client import build_handshake_wrapped, build_packet, HANDSHAKE_WRAP
 
 SALT = '::plkfuyne820icnb8'
 GID_DEC = 779252212
-GID_HEX = '85c8b4a5ac8f203e618e3e25244b3823'
+GID_HEX = '<redacted>'
 
 
 def wrapped_with_token(token, nonce):

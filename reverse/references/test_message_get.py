@@ -29,7 +29,7 @@ def main():
         'conn': 'wifi',
         'ua': 'GooglePixel3',
         'xid': '81',
-        'sid': '20ni2G7C9bzpDOzSCyLQfrJJGDjboWkxxpi2knSfhWARUXXtx4xIXIoi3',
+        'sid': '<redacted>',
         'mtid': 'd9c471b76710fca876003681b785db87',
     }
     param_sets = [

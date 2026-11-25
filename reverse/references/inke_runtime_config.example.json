@@ -1,0 +1,48 @@
+{
+  "uid": 0,
+  "gid": "",
+  "session": 10000,
+  "auth": {
+    "uid": 0,
+    "bus_buf": {
+      "cc": "TG36064",
+      "smid": "",
+      "dev_name": "Google",
+      "ik_appid": "OklL",
+      "conn": "wifi",
+      "ua": "GooglePixel3",
+      "sid": "",
+      "uid": "0",
+      "mtid": "d9c471b76710fca876003681b785db87",
+      "cv": "IK9.9.05_Android",
+      "lc": "3726b262d726e165",
+      "devi": "",
+      "mtxid": "020000000000",
+      "osversion": "android_28",
+      "aid": "",
+      "source_info": "",
+      "gid": "",
+      "clientId": ""
+    },
+    "gid": ""
+  },
+  "enter_room": {
+    "uid": 0,
+    "bus_buf": {
+      "b": {
+        "ev": "c.jr"
+      },
+      "need_mysteric": false,
+      "rid": "0",
+      "liveid": "0",
+      "room_id": 0,
+      "from": "act-热门",
+      "logid": "",
+      "city": "",
+      "location": "",
+      "gid": "",
+      "clientId": ""
+    },
+    "gid": ""
+  }
+}

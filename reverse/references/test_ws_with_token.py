@@ -12,8 +12,8 @@ lid, uid = room["live_id"], room["uid"]
 print("房间 liveid=%s uid=%s" % (lid, uid))
 
 # 从 App 提取的凭证
-SESSION_ID = "f48c885551a262f40249d078380bf5b4"   # track.session.manager.SESSION_ID
-GID = "85c8b4a5ac8f203e618e3e25244b3823"           # conn_gid-tcp-779252212
+SESSION_ID = "<redacted>"   # track.session.manager.SESSION_ID
+GID = "<redacted>"           # conn_gid-tcp-<uid>
 
 def test(label, extra):
     p = {"roomid": lid, "uid": uid, "id": lid, "access_from": "pc_web"}

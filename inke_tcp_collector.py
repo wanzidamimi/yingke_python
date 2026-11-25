@@ -37,6 +37,7 @@ from app_tcp_client import (  # noqa: E402
 )
 from parse_pktmon_pcap import payloads  # noqa: E402
 
+LOCAL_CONFIG = REFS / "inke_runtime_config.local.json"
 DEFAULT_CONFIG = REFS / "inke_runtime_config.json"
 MITM_FLOWS = REFS.parent / "logs" / "mitm_auth_flows.jsonl"
 LONG_UID = 779252212
@@ -47,8 +48,10 @@ ATOM_PREFS = "/data/data/com.meelive.ingkee/shared_prefs/atom_sp.xml"
 UNIQUE_ID_PREFS = "/data/data/com.meelive.ingkee/shared_prefs/sp_name_app_unique_id.xml"
 
 
-def load_runtime_config(path=DEFAULT_CONFIG):
-    with open(path, "r", encoding="utf-8") as f:
+def load_runtime_config(path=None):
+    """优先加载向导保存的本地登录态；不存在时回退基础配置。"""
+    p = Path(path) if path else (LOCAL_CONFIG if LOCAL_CONFIG.exists() else DEFAULT_CONFIG)
+    with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -324,9 +327,10 @@ def find_client_frame(path, cmd):
     )
 
 
-def build_auth_packet(key, config=None, long_uid=LONG_UID):
+def build_auth_packet(key, config=None, long_uid=None):
     """按运行时配置动态构造 0x4004 认证包。"""
     config = config or load_runtime_config()
+    long_uid = long_uid or config.get("uid") or LONG_UID
     body = json.dumps(
         config["auth"], ensure_ascii=False, separators=(",", ":")
     ).encode("utf-8")
@@ -340,7 +344,7 @@ def build_auth_packet(key, config=None, long_uid=LONG_UID):
     )
 
 
-def build_room_packets(liveid, key, config=None, long_uid=LONG_UID):
+def build_room_packets(liveid, key, config=None, long_uid=None):
     """按真实 App 序列构造 0002 / 4c04 / 4020 三个进房包。
 
     真实序列：
@@ -353,6 +357,7 @@ def build_room_packets(liveid, key, config=None, long_uid=LONG_UID):
 
     # 0002：用运行时 JSON 模板改 rid/liveid，再按握手 key 重新 RC4
     config = config or load_runtime_config()
+    long_uid = long_uid or config.get("uid") or LONG_UID
     obj = json.loads(json.dumps(config["enter_room"]))
     bus = obj.get("bus_buf") if isinstance(obj.get("bus_buf"), dict) else {}
     bus["rid"] = liveid
@@ -417,7 +422,7 @@ def decode_body(cmd, body, key):
             return gzip.decompress(body)
         except Exception:
             return None
-    if cmd in (0xB001, 0x0002, 0x0015):
+    if cmd in (0xB001, 0x0002, 0x0015, 0x4004):
         try:
             return gzip.decompress(rc4(body, key))
         except Exception:
@@ -426,6 +431,44 @@ def decode_body(cmd, body, key):
         return gzip.decompress(body)
     except Exception:
         return None
+
+
+def extract_gid_from_auth(obj):
+    """从 0x4004 认证响应中提取 gid。"""
+    if not isinstance(obj, dict):
+        return ""
+    bus = obj.get("bus_buf")
+    if isinstance(bus, dict):
+        bus = [bus]
+    if not isinstance(bus, list):
+        return ""
+    for item in bus:
+        if not isinstance(item, dict):
+            continue
+        try:
+            retcode = int(item.get("retcode") or 0)
+        except Exception:
+            retcode = 0
+        gid = str(item.get("gid") or "").strip()
+        if retcode == 0 and gid:
+            return gid
+    return ""
+
+
+def save_auth_gid(config, gid):
+    """把认证响应返回的 gid 写入运行时配置。"""
+    config["gid"] = gid
+    auth = config.setdefault("auth", {})
+    auth["gid"] = gid
+    bus = auth.setdefault("bus_buf", {})
+    bus["gid"] = gid
+    enter = config.setdefault("enter_room", {})
+    enter["gid"] = gid
+    enter_bus = enter.setdefault("bus_buf", {})
+    enter_bus["gid"] = gid
+    with open(LOCAL_CONFIG, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    return str(LOCAL_CONFIG)
 
 
 def _items(obj):
@@ -485,7 +528,7 @@ class InkeTcpCollector:
     def __init__(self, on_message=None, liveid=None, config_path=None):
         self.on_message = on_message
         self.liveid = str(liveid or "").strip()
-        self.config_path = Path(config_path) if config_path else DEFAULT_CONFIG
+        self.config_path = Path(config_path) if config_path else None
         self.running = False
         self.alive = False
         self._thread = None
@@ -551,6 +594,17 @@ class InkeTcpCollector:
                 info = json.loads(rc4(packet["body"], self._nonce).decode("utf-8"))
                 key = info["key"]
                 sock.sendall(build_auth_packet(key, self._runtime_config))
+                auth_resp = read_packet(sock, buf, timeout=8)
+                if auth_resp and auth_resp.get("cmd") == 0x4004:
+                    plain = decode_body(auth_resp["cmd"], auth_resp["body"], key)
+                    if plain:
+                        try:
+                            gid = extract_gid_from_auth(json.loads(plain.decode("utf-8")))
+                        except Exception:
+                            gid = ""
+                        if gid and gid != self._runtime_config.get("gid"):
+                            save_auth_gid(self._runtime_config, gid)
+                            self._emit("已从认证响应同步 gid=%s" % gid[-8:])
                 for packet in build_room_packets(self.liveid, key, self._runtime_config):
                     sock.sendall(packet)
                 self.state = "live"

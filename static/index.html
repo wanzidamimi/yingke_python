@@ -80,12 +80,17 @@
   #status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #8090a4; box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
   #status[data-state="live"]::before { background: var(--mint); box-shadow: 0 0 0 3px rgba(55,245,195,.12); animation: pulse 1.8s infinite; }
   #status[data-state="connecting"]::before { background: var(--amber); }
-  .workspace { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; min-width: 0; min-height: 0; }
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(300px, 38%) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 14px; min-width: 0; min-height: 0;
+  }
   .room-rail, .stream-panel, .side-panel {
     border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
     background: var(--panel); backdrop-filter: blur(18px); min-height: 0;
   }
-  .room-rail { padding: 13px 16px; display: grid; gap: 10px; }
+  .room-rail { padding: 13px 16px; display: grid; align-content: start; gap: 10px; overflow: auto; }
   .section-title { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
   .section-title::before { content: ""; width: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--mint), transparent); }
   #roomGrid {
@@ -102,6 +107,39 @@
   .room-card .meta { min-width: 0; font-size: 12px; }
   .room-card .meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .room-card .meta span { display: block; margin-top: 2px; color: #8492a5; font-size: 11px; }
+  .video-stage {
+    position: relative; overflow: hidden; border-radius: 14px;
+    width: min(100%, 360px); aspect-ratio: 9 / 16; max-height: calc(100dvh - 250px);
+    margin: 0 auto;
+    background: radial-gradient(circle at 50% 30%, rgba(55,245,195,.08), transparent 55%), #02050a;
+    border: 1px solid rgba(255,255,255,.08); display: grid; place-items: center;
+  }
+  .video-stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+  .video-stage .video-overlay {
+    position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+    color: #8b96a6; font-size: 12px; padding: 16px; pointer-events: none;
+  }
+  .video-stage .video-info {
+    position: absolute; left: 10px; bottom: 10px; padding: 4px 8px; border-radius: 999px;
+    color: #b8c5d5; background: rgba(0,0,0,.55); font-size: 10px;
+  }
+  .login-section { position: relative; }
+  .login-lock {
+    position: absolute; inset: 0; z-index: 8; display: grid; place-items: center;
+    padding: 14px; border-radius: var(--radius); text-align: center;
+    background: rgba(8,12,19,.62); backdrop-filter: blur(2px);
+    color: #c3ccd8; border: 1px solid rgba(255,255,255,.08); font-size: 12px; line-height: 1.7;
+  }
+  .guide-box { display: grid; gap: 8px; }
+  .guide-step { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #c4ceda; }
+  .guide-step b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: rgba(55,245,195,.16); color: var(--mint); }
+  .login-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .login-tab { padding: 7px 6px !important; height: 32px !important; font-size: 12px; }
+  .login-tab.active { background: rgba(55,245,195,.14) !important; border-color: rgba(55,245,195,.45) !important; }
+  .login-pane { display: none; gap: 8px; }
+  .login-pane.active { display: grid; }
+  .guide-box input { min-width: 0; width: 100%; height: 34px; font-size: 12px; }
+  .login-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .stream-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
   .stream-head {
     display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px;
@@ -143,6 +181,27 @@
   #filters .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--chip, #9aa3af); box-shadow: 0 0 12px color-mix(in srgb, var(--chip, #9aa3af) 55%, transparent); }
   .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
   .mini-grid button { font-size: 12px; padding: 0 10px; }
+  .hidden { display: none !important; }
+  .user-chip {
+    display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 4px 6px 4px 10px;
+    border-radius: 999px; background: rgba(55,245,195,.08); border: 1px solid rgba(55,245,195,.28);
+    font-size: 11px; color: #cfe9e2; white-space: nowrap;
+  }
+  .user-chip .uid { color: var(--mint); font-weight: 700; }
+  .user-chip button { height: 24px; padding: 0 8px; font-size: 10px; }
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+    background: rgba(2,6,12,.74); backdrop-filter: blur(8px); padding: 18px;
+  }
+  .modal {
+    width: min(480px, 100%); padding: 22px; border-radius: 18px;
+    background: linear-gradient(145deg, rgba(18,27,42,.98), rgba(10,15,24,.98));
+    border: 1px solid rgba(55,245,195,.25); box-shadow: var(--shadow);
+  }
+  .modal h2 { margin: 0 0 8px; font-size: 18px; }
+  .modal p { margin: 0 0 18px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+  .modal-actions { display: grid; gap: 9px; }
+  .modal-actions button { width: 100%; }
   .metric { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
   .metric div { padding: 10px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
   .metric b { display: block; font-size: 18px; }
@@ -152,7 +211,8 @@
   @media (max-width: 900px) {
     body { overflow: auto; }
     .shell { height: auto; grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
-    .workspace, .side-panel { min-height: auto; }
+    .workspace { grid-template-columns: 1fr; grid-template-rows: auto auto; min-height: auto; }
+    .side-panel { min-height: auto; }
     .stream-panel { min-height: 58vh; }
     header { flex-wrap: wrap; }
     .controls { margin-left: 0; width: 100%; }
@@ -171,9 +231,17 @@
       </div>
     </div>
     <div class="controls">
+      <div id="userChip" class="user-chip hidden">
+        <span>UID <b class="uid" id="userUid">—</b></span>
+        <span id="userMethod">未登录</span>
+        <span id="userGid">gid —</span>
+        <button id="logoutBtn" class="ghost">退出登录</button>
+      </div>
       <div class="field"><input id="room" placeholder="输入主播 UID / 直播间链接 / liveid"></div>
+      <button id="wake" class="ghost">唤醒模拟器</button>
       <button id="start" class="primary">连接采集</button>
       <button id="stop" class="ghost" disabled>停止</button>
+
       <button id="export" class="ghost">导出 CSV</button>
       <button id="history" class="ghost">历史记录</button>
       <span id="status" data-state="idle">idle · 0 条</span>
@@ -182,7 +250,13 @@
 
   <main class="workspace">
     <section class="room-rail">
-      <div class="section-title">热门直播间 · 点击卡片直接采集</div>
+      <div class="section-title">直播间画面 · HTTP-FLV 实时流（不保存视频）</div>
+      <div class="video-stage">
+        <video id="liveVideo" muted autoplay playsinline></video>
+        <div id="videoPlaceholder" class="video-overlay">选择直播间后显示画面</div>
+        <div id="videoInfo" class="video-info">画面与弹幕 TCP 连接独立</div>
+      </div>
+      <div class="section-title">热门直播间 · 点击卡片直接采集并显示画面</div>
       <div id="roomGrid"></div>
     </section>
 
@@ -203,6 +277,41 @@
   </main>
 
   <aside class="side-panel" aria-label="会话控制">
+    <section id="loginSection" class="panel-block login-section">
+      <div class="section-title">首次使用：登录向导</div>
+      <div id="loginLock" class="login-lock hidden">
+        <span>当前已登录<br>退出登录后可修改登录方式</span>
+      </div>
+      <div class="login-tabs">
+        <button id="tabHttp" class="ghost login-tab active">手机号验证码</button>
+        <button id="tabAdb" class="ghost login-tab">ADB 设备同步</button>
+      </div>
+      <div id="loginGuide" class="guide-box">
+        <div id="paneHttp" class="login-pane active">
+          <div class="guide-step"><b>1</b><span>输入手机号，点击发送验证码</span></div>
+          <input id="httpPhone" inputmode="numeric" placeholder="手机号">
+          <div class="login-row">
+            <input id="httpArea" value="86" placeholder="区号">
+            <input id="httpRegion" value="cn" placeholder="region">
+          </div>
+          <button id="httpSend" class="ghost">发送验证码</button>
+          <div class="guide-step"><b>2</b><span>输入短信验证码并保存登录态</span></div>
+          <input id="httpCode" inputmode="numeric" placeholder="短信验证码">
+          <button id="httpVerify" class="primary">登录并保存登录态</button>
+        </div>
+        <div id="paneAdb" class="login-pane">
+          <div class="guide-step"><b>1</b><span>检查 ADB、root 和映客是否安装</span></div>
+          <div class="mini-grid">
+            <button id="loginCheck" class="ghost">检查环境</button>
+            <button id="loginOpen" class="ghost">打开映客登录</button>
+          </div>
+          <div class="guide-step"><b>2</b><span>在手机/模拟器上自行登录，然后同步</span></div>
+          <button id="loginSync" class="primary">读取并保存登录态</button>
+        </div>
+        <p id="loginGuideText" class="hint">手机号和验证码只在本次请求内存中临时使用，不写入文件。</p>
+      </div>
+    </section>
+
     <section class="panel-block">
       <div class="section-title">会话状态</div>
       <div class="metric">
@@ -231,12 +340,31 @@
   </aside>
 </div>
 
+<div id="loginModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2>请先登录映客账号</h2>
+    <p>当前没有可用登录凭证。请选择一种登录方式；登录成功后即可直接选择直播间采集弹幕。</p>
+    <div class="modal-actions">
+      <button id="modalHttpLogin" class="primary">手机号验证码登录</button>
+      <button id="modalAdbLogin" class="ghost">ADB / root 设备同步</button>
+      <button id="modalLater" class="ghost">稍后再说</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/vendor/mpegts.min.js"></script>
 <script>
 const list = document.getElementById('list');
 const statusEl = document.getElementById('status');
 const startBtn = document.getElementById('start');
 const stopBtn = document.getElementById('stop');
+const wakeBtn = document.getElementById('wake');
 const roomInput = document.getElementById('room');
+const loginGuideText = document.getElementById('loginGuideText');
+let httpLoginToken = '';
+let videoPlayer = null;
+let videoRetryCount = 0;
+window.lastVideoError = null;
 let categories = {};
 let enabled = new Set();
 let knownCount = 0;
@@ -289,17 +417,237 @@ function append(ev) {
   }
 }
 
+function setLoginLocked(locked) {
+  const section = document.getElementById('loginSection');
+  const overlay = document.getElementById('loginLock');
+  if (!section || !overlay) return;
+  overlay.classList.toggle('hidden', !locked);
+  section.classList.toggle('locked', locked);
+  section.querySelectorAll('input, button').forEach(el => {
+    el.disabled = !!locked;
+  });
+}
+
+async function refreshSession(openModalIfMissing = false) {
+  const s = await fetch('/api/session/current').then(x=>x.json()).catch(()=>({logged_in:false}));
+  if (s.logged_in && s.user) {
+    renderUserChip(s.user);
+    setLoginLocked(true);
+    closeLoginModal();
+    return true;
+  }
+  document.getElementById('userChip').classList.add('hidden');
+  setLoginLocked(false);
+  if (openModalIfMissing) openLoginModal();
+  return false;
+}
+
+function openLoginModal() {
+  document.getElementById('loginModal').classList.remove('hidden');
+}
+function closeLoginModal() {
+  document.getElementById('loginModal').classList.add('hidden');
+}
+function renderUserChip(user) {
+  document.getElementById('userUid').textContent = user.uid || '—';
+  const methods = {http_sms:'手机号登录', adb_root:'设备同步', local_config:'本地配置'};
+  document.getElementById('userMethod').textContent = methods[user.login_method] || user.login_method || '已登录';
+  const gidText = user.gid_status === 'pending' ? 'gid 待分配' : 'gid 就绪';
+  document.getElementById('userGid').textContent = gidText;
+  document.getElementById('userChip').classList.remove('hidden');
+}
+async function logoutCurrentUser() {
+  await fetch('/api/session/logout', {method:'POST'}).catch(()=>null);
+  document.getElementById('userChip').classList.add('hidden');
+  setLoginLocked(false);
+  destroyVideo();
+  setVideoPlaceholder('已退出登录，选择直播间后显示画面');
+  startBtn.disabled = false; stopBtn.disabled = true;
+  setStatus('idle', 'idle · 已退出登录');
+  openLoginModal();
+}
+
+document.getElementById('logoutBtn').onclick = logoutCurrentUser;
+document.getElementById('modalHttpLogin').onclick = () => {
+  document.getElementById('tabHttp').click();
+  closeLoginModal();
+  document.getElementById('httpPhone').focus();
+};
+document.getElementById('modalAdbLogin').onclick = () => {
+  document.getElementById('tabAdb').click();
+  closeLoginModal();
+};
+document.getElementById('modalLater').onclick = closeLoginModal;
+
+function setVideoPlaceholder(text) {
+  document.getElementById('videoPlaceholder').textContent = text;
+  document.getElementById('videoPlaceholder').classList.remove('hidden');
+}
+function hideVideoPlaceholder() {
+  document.getElementById('videoPlaceholder').classList.add('hidden');
+}
+function destroyVideo() {
+  if (videoPlayer) {
+    try { videoPlayer.destroy(); } catch (_) {}
+    videoPlayer = null;
+  }
+  const video = document.getElementById('liveVideo');
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+}
+async function loadVideo(liveid, forceRefresh = false) {
+  destroyVideo();
+  videoRetryCount = 0;
+  if (!liveid) { setVideoPlaceholder('该直播间暂无可播放画面'); return; }
+  if (!window.mpegts) { setVideoPlaceholder('播放器未加载：/static/vendor/mpegts.min.js'); return; }
+  setVideoPlaceholder('正在检查画面流…');
+  const checkUrl = '/api/video/check?liveid=' + encodeURIComponent(liveid) + (forceRefresh ? '&refresh=1' : '');
+  const check = await fetch(checkUrl).then(x => x.json()).catch(() => ({ok:false, error:'画面检查失败'}));
+  if (!check.ok) { setVideoPlaceholder(check.error || '该直播间暂无可播放画面'); return; }
+  setVideoPlaceholder('正在加载画面…');
+  const url = new URL(
+    '/api/video/stream?liveid=' + encodeURIComponent(liveid) + (forceRefresh ? '&refresh=1' : ''),
+    window.location.href
+  ).href;
+  videoPlayer = mpegts.createPlayer(
+    { type: 'flv', url, isLive: true },
+    { enableWorker: true, lowLatencyMode: true, liveBufferLatencyChasing: true }
+  );
+  videoPlayer.attachMediaElement(document.getElementById('liveVideo'));
+  videoPlayer.load();
+  videoPlayer.play().then(hideVideoPlaceholder).catch(() => setVideoPlaceholder('点击页面后开始播放画面'));
+  videoPlayer.on(mpegts.Events.ERROR, (type, detail, info) => {
+    window.lastVideoError = {
+      type,
+      detail: String(detail),
+      info: info && info.msg ? String(info.msg) : String(info || '')
+    };
+    console.warn('[video] mpegts error', type, detail, info);
+    setVideoPlaceholder('画面流中断，正在刷新…');
+    if (videoRetryCount < 1) {
+      videoRetryCount += 1;
+      setTimeout(() => loadVideo(liveid, true), 800);
+    } else {
+      destroyVideo();
+      setVideoPlaceholder('该直播间暂无可播放画面');
+    }
+  });
+}
+
 async function startSession(payload) {
+  const ok = await refreshSession(true);
+  if (!ok) return false;
   const r = await fetch('/api/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}).then(x=>x.json());
   if (!r.ok) { alert(r.error || '启动失败'); return; }
   startBtn.disabled = true; stopBtn.disabled = false; list.innerHTML = '';
   setStatus('connecting', 'connecting · 启动中');
+  const liveid = payload.liveid || '';
+  loadVideo(liveid);
+  return true;
 }
 
 startBtn.onclick = async () => {
   const room = roomInput.value.trim();
   if (!room) return;
-  await startSession({room});
+  const resolved = await fetch('/api/resolve', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({room})
+  }).then(x=>x.json()).catch(()=>({ok:false}));
+  await startSession({room, liveid: resolved.liveid || ''});
+};
+
+wakeBtn.onclick = async () => {
+  wakeBtn.disabled = true;
+  wakeBtn.textContent = '唤醒中…';
+  try {
+    const r = await fetch('/api/emulator/wake', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({})
+    }).then(x => x.json());
+    if (!r.ok) { alert(r.error || '唤醒失败'); return; }
+    append({kind: 'system', text: '模拟器已唤醒并启动映客，请确认登录态。'});
+    window.open('/api/emulator/screenshot?t=' + Date.now(), '_blank');
+  } finally {
+    wakeBtn.disabled = false;
+    wakeBtn.textContent = '唤醒模拟器';
+  }
+};
+
+function setLoginGuide(text) {
+  loginGuideText.textContent = text;
+}
+
+document.getElementById('tabHttp').onclick = () => {
+  document.getElementById('paneHttp').classList.add('active');
+  document.getElementById('paneAdb').classList.remove('active');
+  document.getElementById('tabHttp').classList.add('active');
+  document.getElementById('tabAdb').classList.remove('active');
+};
+document.getElementById('tabAdb').onclick = () => {
+  document.getElementById('paneAdb').classList.add('active');
+  document.getElementById('paneHttp').classList.remove('active');
+  document.getElementById('tabAdb').classList.add('active');
+  document.getElementById('tabHttp').classList.remove('active');
+};
+
+document.getElementById('httpSend').onclick = async () => {
+  const phone = document.getElementById('httpPhone').value.trim();
+  const areaCode = document.getElementById('httpArea').value.trim() || '86';
+  const region = document.getElementById('httpRegion').value.trim() || 'cn';
+  if (!phone) { setLoginGuide('请先输入手机号'); return; }
+  setLoginGuide('正在发送验证码…');
+  const r = await fetch('/api/login/http/sms', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({phone, area_code:areaCode, region})
+  }).then(x=>x.json()).catch(()=>({ok:false,error:'接口不可用'}));
+  if (!r.ok) { setLoginGuide(r.error || '发送失败'); return; }
+  httpLoginToken = r.token;
+  setLoginGuide(r.message + '（' + r.masked_phone + '）');
+};
+
+document.getElementById('httpVerify').onclick = async () => {
+  const phone = document.getElementById('httpPhone').value.trim();
+  const code = document.getElementById('httpCode').value.trim();
+  if (!httpLoginToken) { setLoginGuide('请先发送验证码'); return; }
+  if (!phone || !code) { setLoginGuide('请填写手机号和验证码'); return; }
+  setLoginGuide('正在登录并保存登录态…');
+  const r = await fetch('/api/login/http/verify', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:httpLoginToken, phone, code})
+  }).then(x=>x.json()).catch(()=>({ok:false,error:'接口不可用'}));
+  if (!r.ok) { setLoginGuide(r.error || '登录失败'); return; }
+  httpLoginToken = '';
+  document.getElementById('httpCode').value = '';
+  const m = r.masked || {};
+  setLoginGuide(`登录成功：uid=${m.uid} sid=${m.sid} gid=${m.gid}${r.gid_note ? '；' + r.gid_note : ''}`);
+  append({kind:'system', text:'HTTP 手机号登录成功，本地配置已更新。'});
+  await refreshSession(false);
+};
+
+document.getElementById('loginCheck').onclick = async () => {
+  const r = await fetch('/api/login/status').then(x => x.json()).catch(() => ({ok:false,error:'接口不可用'}));
+  const env = r.environment || {};
+  setLoginGuide(r.ok
+    ? `环境正常：root=${env.root} 映客=${env.app_installed} 本地配置=${env.local_config}`
+    : (env.error || r.error || '环境检查失败'));
+};
+
+document.getElementById('loginOpen').onclick = async () => {
+  setLoginGuide('正在打开映客，请在手机/模拟器上自行登录…');
+  const r = await fetch('/api/login/open', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).then(x=>x.json()).catch(()=>({ok:false,error:'接口不可用'}));
+  setLoginGuide(r.ok ? '已启动映客。登录完成后点“读取并保存登录态”。' : (r.error || '打开失败'));
+  if (r.ok) window.open('/api/emulator/screenshot?t=' + Date.now(), '_blank');
+};
+
+document.getElementById('loginSync').onclick = async () => {
+  setLoginGuide('正在读取登录态…');
+  const r = await fetch('/api/login/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).then(x=>x.json()).catch(()=>({ok:false,error:'接口不可用'}));
+  if (!r.ok) { setLoginGuide(r.error || '读取失败'); return; }
+  const m = r.masked || {};
+  setLoginGuide(`已保存：uid=${m.uid} sid=${m.sid} 候选=${r.sid_candidate_count}`);
+  append({kind:'system', text:'登录态已保存，开始采集时会优先使用本地配置。'});
+  await refreshSession(false);
 };
 
 async function loadRooms() {
@@ -322,6 +670,8 @@ async function loadRooms() {
 
 stopBtn.onclick = async () => {
   await fetch('/api/stop', {method:'POST'});
+  destroyVideo();
+  setVideoPlaceholder('采集已停止，选择直播间后重新显示画面');
   startBtn.disabled = false; stopBtn.disabled = true;
   setStatus('idle', 'idle · 会话已停止');
 };
@@ -341,7 +691,16 @@ document.getElementById('history').onclick = showHistory;
 document.getElementById('historySide').onclick = showHistory;
 
 const es = new EventSource('/api/events');
-es.onmessage = e => { try { append(JSON.parse(e.data)); } catch (_) {} };
+es.onmessage = e => {
+  try {
+    const ev = JSON.parse(e.data);
+    append(ev);
+    if ((ev.kind === 'system' || ev.kind === 'session') &&
+        String(ev.text || '').includes('已从认证响应同步 gid')) {
+      refreshSession(false);
+    }
+  } catch (_) {}
+};
 
 setInterval(async () => {
   const s = await fetch('/api/status').then(x=>x.json()).catch(()=>null);
@@ -354,6 +713,7 @@ setInterval(async () => {
 loadCategories();
 loadRooms();
 updateMetrics(0);
+refreshSession(true);
 </script>
 </body>
 </html>
